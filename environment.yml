@@ -1,0 +1,8 @@
+name: kh
+channels:
+- conda-forge
+- default
+dependencies:
+- python>=3.10
+- pyyaml
+- unidecode

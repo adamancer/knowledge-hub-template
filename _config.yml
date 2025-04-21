@@ -1,0 +1,79 @@
+title: Knowledge Hub Template
+description: A knowledge hub template based on minimal-mistakes
+repository: adamancer/knowledge-hub-template
+theme: minimal-mistakes-jekyll
+exclude: [scripts, templates]
+
+atom_feed:
+  hide: true
+
+after_footer_scripts:
+  - /assets/js/custom.js
+
+search: true
+search_full_content: true
+lunr:
+  search_within_pages: true
+
+collections_dir: collections
+collections:
+  tutorials:
+    output: True
+    sort_by: nav_order
+  "how-to-guides":
+    output: True
+    sort_by: nav_order
+  "reference-guides":
+    output: True
+    sort_by: nav_order
+  explanations:
+    output: True
+    sort_by: nav_order
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: single
+      sidebar:
+        nav: sidebar
+        collapsible: True
+  - scope:
+      path: ""
+      type: collections
+    values:
+      toc: true
+      toc_sticky: true
+  - scope:
+      path: ""
+      type: tutorials
+    values:
+      section: Tutorials
+      sidebar:
+        expanded: [tutorials]
+  - scope:
+      path: ""
+      type: how-to-guides
+    values:
+      section: How to guides
+      sidebar:
+        expanded: [how-to-guides]
+  - scope:
+      path: ""
+      type: reference-guides
+    values:
+      section: Reference Guides
+      sidebar:
+        expanded: [reference-guides]
+
+  - scope:
+      path: ""
+      type: explanations
+    values:
+      section: Explanations
+      sidebar:
+        expanded: [explanations]
+  
+python:
+  main_nav: ["tutorials.md", "how-to-guides.md", "reference-guides.md", "explanations.md"]
+  tag_name: tags

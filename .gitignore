@@ -1,0 +1,9 @@
+*.ipynb
+*.sqlite
+
+.jekyll-cache
+__pycache__
+_site
+
+_data/navigation.yml
+_data/tags.yml
