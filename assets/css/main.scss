@@ -8,8 +8,13 @@ search: false
 @import "minimal-mistakes/skins/{{ site.minimal_mistakes_skin | default: 'default' }}"; // skin
 @import "minimal-mistakes"; // main partials
 
-.page__content { font-size: 0.9em; }
+@media (prefers-color-scheme: dark) {
+   :root { filter: invert(100%); }
+   div.page__hero--overlay, div.archive__item-teaser { filter: invert(100%); }
+   img:not([src*=".svg"]), video { filter: invert(100%); }
+}
 
+.page__content { font-size: 0.9em; }
 
 // Feature row and items
 .feature__wrapper a:link { color: #000; text-decoration: none; }
@@ -26,7 +31,7 @@ h2.archive__item-title { text-align: center; }
 div.archive__item-teaser img { width: 30%;  padding: 0; box-shadow: none !important; margin: 10% 35% 0 35%; }
 div.archive__item-excerpt { margin: 0 5%; }
 
-// Left naviation bar
+// Left navigation bar
 ul.collapsible li:has(ul) span::after { content: " ▴"; }
 ul.collapsible li:has(ul.hidden) span::after { content: " ▾"; }
 
