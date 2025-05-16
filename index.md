@@ -18,7 +18,7 @@ feature_row:
       alt: "A line drawing of three books arranged as if on a shelf"
       title: "How To Guides"
       excerpt: 
-      url: /how_to_guides
+      url: /how-to-guides
     - image_path: /assets/images/ri--questionnaire-line.png
       alt: "A line drawing of a speech bubble containing a question mark"
       title: "Explanations"
