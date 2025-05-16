@@ -89,6 +89,8 @@ def compute_urls(fms: dict) -> dict:
             path[-1] = Path(path[-1]).stem
             key = path[0]
             heading = path[-2]
+            if path[-1] == "index":
+                path = path[:-1]
 
         # Build paths to non-collection content using the parent attribute
         else:
@@ -217,7 +219,7 @@ def build_nav(
         )
     )
 
-    # Add pages from collections
+    # Add pages from collections to navigation
     children = {}
     for title, fm in fms.items():
         if (
@@ -230,16 +232,26 @@ def build_nav(
                 heading = headers[fm["heading"]]
             except KeyError:
                 heading = " ".join(fm["heading"].split("-")).title()
-            page = {"title": title, "url": fm["url"]}
+            page = {"title": fm.get("display_title", title), "url": fm["url"]}
             group = [g for g in nav.get("sidebar", []) if g["title"] == heading][0]
             group.setdefault("children", []).append(page)
             children[title] = page
 
-    # Add pages from subcollections
-    for title, fm in fms.items():
-        if title not in children and not fm.get("nav_exclude") and fm.get("parent"):
-            page = {"title": title, "url": fm["url"]}
-            children[fm.get("parent")].setdefault("children", []).append(page)
+    # Add pages that specify a parent to navigation
+    while True:
+        last = len(fms)
+        for title, fm in fms.items():
+            if (
+                title not in children
+                and not fm.get("nav_exclude")
+                and fm.get("parent") in children
+            ):
+                page = {"title": fm.get("display_title", title), "url": fm["url"]}
+                children[fm.get("parent")].setdefault("children", []).append(page)
+                children[title] = page
+        fms = {k: v for k, v in fms.items() if k not in children}
+        if len(fms) == last:
+            break
 
     fpath = BASEPATH / "_data" / "navigation.yml"
     with open(fpath, "w", encoding="utf-8") as f:
