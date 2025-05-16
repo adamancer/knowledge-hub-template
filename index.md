@@ -40,3 +40,7 @@ feature_row:
 Template for a knowledge hub based on the [minimal-mistakes](https://github.com/mmistakes/minimal-mistakes) Jekyll theme and the [Divio Documentation System](https://docs.divio.com/documentation-system/).
 
 {% include feature_row %}
+
+{% if site.repository %}
+**Interested in contributing?** Learn more at the [GitHub repository](https://github.com/{{ site.repository }}) for this hub.
+{% endif %}
