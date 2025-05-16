@@ -14,7 +14,7 @@ A landing page for detailed references describing the fields, functions, and cla
 
 <h2>Pages</h2>
 <ul>
-{% for item in site.reference %}
+{% for item in site["reference-guides"] %}
 {% unless item.parent %}
   <li><a href="{{ item.url | relative_url }}">{{ item.title }}</a></li>
 {% endunless %}
