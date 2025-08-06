@@ -4,7 +4,7 @@ status: draft
 tags: [template]
 ---
 
-The Documentation Method defines four main types of documentation:
+The Divio Documentation System defines four main types of documentation:
 
 - **Tutorials** help readers learn how to use a system
 - **How To Guides** show readers how to accomplish a specific task

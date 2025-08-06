@@ -1,22 +1,26 @@
 print("Loading utils")
 
+import io
 import re
 from pathlib import Path
 
+import pandas as pd
 import yaml
 from unidecode import unidecode
 
-from const import BASEPATH, VALID_TAGS
+from const import BASEPATH, GLOSSARY, IS_GITHUB, VALID_TAGS
 
 
-def autolink(text: str, fmt: str = "markdown") -> str:
+def autolink(text: str, fmt: str = "markdown", class_: str = None) -> str:
     """Locates and adds anchor tags to external links in text"""
     for url in set(re.findall(r"https?://[^\s]+", text)):
         strip_chars = ",."
         if "(" not in url:
             strip_chars += ")"
         url = url.rstrip(strip_chars)
-        if fmt == "html":
+        if fmt == "html" and class_:
+            text = text.replace(url, f'<a href="{url}" class="{class_}">{url}</a>')
+        elif fmt == "html":
             text = text.replace(url, f'<a href="{url}">{url}</a>')
         elif fmt == "markdown":
             text = text.replace(url, f"[{url}]({url})")
@@ -147,6 +151,10 @@ def index_tags(fms: dict, key: str = "tags") -> dict:
         if tags:
             if not isinstance(tags, list):
                 tags = [tags]
+            invalid = set(tags) - VALID_TAGS
+            if invalid:
+                print(f"Invalid tags omitted: {invalid} (url={fm['url']})")
+                tags = sorted(set(tags) & VALID_TAGS)
             tagged.append(
                 {
                     "title": fm["title"],
@@ -183,6 +191,7 @@ def build_nav(
     headers: dict = None,
     include_main: list = None,
     exclude_main: list = None,
+    exclude_sidebar: list = None,
 ) -> None:
     """Builds a navigation sidebar"""
     if headers is None:
@@ -199,7 +208,9 @@ def build_nav(
     main.sort(key=lambda p: p.get("nav_order", 100000))
 
     for fm in main:
-        if fm["path"].name != "index.md":
+        if fm["path"].name not in {"index.md", "test.md"}:
+
+            # Build topbar navigation
             if (
                 not (include_main or exclude_main)
                 or (include_main and fm["path"].name in include_main)
@@ -208,9 +219,12 @@ def build_nav(
                 nav.setdefault("main", []).append(
                     {"title": fm["title"], "url": fm["url"]}
                 )
-            nav.setdefault("sidebar", []).append(
-                {"title": fm["title"], "url": fm["url"]}
-            )
+
+            # Build sidebar navigation
+            if not exclude_sidebar or fm["path"].name not in exclude_sidebar:
+                nav.setdefault("sidebar", []).append(
+                    {"title": fm["title"], "url": fm["url"]}
+                )
 
     fms = dict(
         sorted(
@@ -256,3 +270,111 @@ def build_nav(
     fpath = BASEPATH / "_data" / "navigation.yml"
     with open(fpath, "w", encoding="utf-8") as f:
         yaml.dump(nav, f, sort_keys=False)
+
+
+def add_tooltips(path, glossary=None, exclude=(".github", "README.md", "vendor")):
+    """Adds definitions as tooltips"""
+
+    if glossary is None:
+        glossary = GLOSSARY
+
+    # Build pattern to find elements that should not include tooltips
+    subpatterns = (
+        r"#.*?\n",  # markdown headers
+        r"\[.*?\]\(.*?\)",  # markdown links
+        r"{%.*?%}",  # Jekyll includes
+        r"<*?>.*?</*?>",  # HTML tags
+    )
+    pattern = f"({'|'.join(subpatterns)})"
+
+    for path in path.glob("**/*.md"):
+
+        # This function modifies the markdown files. The modified files should not
+        # be committed, so it only runs on test.md if run locally.
+        if not IS_GITHUB and path.name != "test.md":
+            continue
+
+        # Skip files including any of the exclude keywords
+        if any((s in str(path) for s in exclude)):
+            continue
+
+        # Create a copy of the glossary. Terms are removed as they are found so that
+        # only the first occurrence in each document has the tooltip.
+        glossary_ = glossary.copy()
+
+        with open(path, encoding="utf-8") as f:
+            try:
+                _, fm, content = f.read().split("---", 2)
+            except Exception as exc:
+                raise ValueError(f"No YAML header: {path}") from exc
+            parts = re.split(pattern, content)
+            for i, part in enumerate(parts):
+                if not re.match(pattern, part):
+                    for key in list(glossary_):
+                        # Find the first match for the term in the part
+                        match = re.search(rf"\b{key}\b", part, flags=re.I)
+                        if match is not None:
+                            # Use the matched term so that case is preserved
+                            term = match.group()
+                            try:
+                                namespace, term = term.split(":")
+                            except ValueError:
+                                namespace = ""
+                            include = f'{{% include glossary term="{term}" namespace="{namespace}" %}}'
+                            parts[i] = re.sub(
+                                rf"\b{match.group()}\b", include, parts[i], 1
+                            )
+                            del glossary_[key]
+            content_ = "---" + fm + "---" + "".join(parts)
+
+        # Do not mess with the file unless it has been changed
+        if content != content_:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content_)
+
+
+def add_dwc_terms(session):
+    """Updates the glossary with terms from Darwin Core"""
+
+    def assign_namespace(val):
+        if "dwc/terms" in val:
+            return "dwc"
+        elif "dwc/iri" in val:
+            return "dwciri"
+        elif "dublincore" in val:
+            return "dc"
+        else:
+            raise ValueError(f"Unknown namespace: {val}")
+
+    source = "Darwin Core"
+    url = "https://raw.githubusercontent.com/tdwg/dwc/refs/heads/master/vocabulary/term_versions.csv"
+    resp = session.get(url)
+    df = pd.read_csv(io.StringIO(resp.text))
+
+    # Restrict to recommended terms
+    df = df[df["status"] == "recommended"]
+
+    # Assign namespaces based on IRI
+    df["namespace"] = df["iri"].apply(assign_namespace)
+
+    glossary = [t for t in GLOSSARY.values() if t.get("source") != source]
+    for _, row in df.iterrows():
+        term = row["term_localName"]
+        glossary.append(
+            {
+                "term": term,
+                "definition": row["definition"],
+                "namespace": row["namespace"],
+                "source": source,
+                "url": f"https://dwc.tdwg.org/terms/#dwc:{term}",
+            }
+        )
+    glossary.sort(key=lambda t: t["term"].lower())
+
+    with open(BASEPATH / "_data" / "glossary.yml", "w", encoding="utf-8") as f:
+        yaml.safe_dump(glossary, f, sort_keys=False)
+
+    return {
+        (t.get("namespace", "") + ":" + t["term"].lower()).lstrip(":"): t
+        for t in glossary
+    }

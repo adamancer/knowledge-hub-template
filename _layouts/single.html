@@ -31,7 +31,7 @@ layout: default
       {% unless page.header.overlay_color or page.header.overlay_image %}
         <header>
           {% if page.section -%}
-          <div class="section-title"><a href="{{ page.section | downcase | replace: ' ', '-' | relative_url}}">{{ page.section }}</a></div>
+          <div class="section-title"><a href="{{ page.section | downcase | replace: ' ', '_' | relative_url}}">{{ page.section }}</a></div>
           {%- endif %}
           {% if page.title -%}
           <h1 id="page-title" class="page__title" itemprop="headline">
@@ -51,14 +51,19 @@ layout: default
         {% if page.toc %}
           <aside class="sidebar__right {% if page.toc_sticky %}sticky{% endif %}">
             <nav class="toc">
-              <header><h4 class="nav__title"><i class="fas fa-{{ page.toc_icon | default: 'file-alt' }}"></i> {{ page.toc_label | default: site.data.ui-text[site.locale].toc_label | default: "Contents" }}</h4></header>
+              <header><h2 class="nav__title"><i class="fas fa-{{ page.toc_icon | default: 'file-alt' }}"></i> {{ page.toc_label | default: site.data.ui-text[site.locale].toc_label | default: "On this page" }}</h2></header>
               {% include toc.html sanitize=true html=content h_min=1 h_max=6 class="toc__menu" skip_no_ids=true %}
             </nav>
           </aside>
         {% endif %}
         {% if page.status != "published" %}
         <div class="notice--warning">
-          The content on this page has not been finalized. Contributors can mark a page as complete and remove this warning by adding <code>status: published</code> to the front matter in the Markdown source file.
+          <p>The content on this page has not been finalized. Contributors can mark a page as complete and remove this warning by adding <code>status: published</code> to the front matter in the Markdown source file.</p>
+        </div>
+        {% endif %}
+        {% if page.last_modified_at == nil %}
+        <div class="notice--warning">
+          <p>No modified date was found for this page. Please add <code>last_modified_at: yyyy-mm-dd</code> to the front matter in the Markdown source file.</code></p>
         </div>
         {% endif %}
         {{ content }}
@@ -67,7 +72,7 @@ layout: default
 
       <footer class="page__meta">
         {% if site.data.ui-text[site.locale].meta_label %}
-          <h4 class="page__meta-title">{{ site.data.ui-text[site.locale].meta_label }}</h4>
+          <h2 class="page__meta-title">{{ site.data.ui-text[site.locale].meta_label }}</h2>
         {% endif %}
         {% include page__taxonomy.html %}
         {% include page__date.html %}

@@ -47,13 +47,19 @@ Ordered lists use numbers:
 ## Notices
 
 {:.notice}
-**Notices** can be used to make information stand out.
+Notices can be used to make information stand out.
 
 {:.notice--info}
-**Information notices** highlight important information.
+Information notices highlight important information.
 
 {:.notice--warning}
-**Warnings** let users know about potential problems or gotchas.
+Warnings let users know about potential problems or gotchas.
+
+{:.notice--danger}
+Critical warnings let users know about serious problems.
+
+{:.notice--success}
+Success notices identify successful outcomes.
 
 ## Links
 

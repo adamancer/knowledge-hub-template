@@ -4,13 +4,11 @@ import yaml
 
 from const import BASEPATH
 from utils import (
-    autolink,
+    add_tooltips,
     build_nav,
     compute_urls,
     index_tags,
     read_fms,
-    to_slug,
-    write_fm,
 )
 
 if __name__ == "__main__":
@@ -32,3 +30,6 @@ if __name__ == "__main__":
 
     print("Building navigation")
     build_nav(fms, include_main=config["main_nav"])
+
+    print("Adding glossary tooltips")
+    add_tooltips(BASEPATH)
