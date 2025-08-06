@@ -237,7 +237,12 @@ def build_nav(
     # Add top-level pages from collections to navigation
     children = {}
     for title, fm in fms.items():
-        if not fm.get("nav_exclude") and fm["key"] and fm["heading"]:
+        if (
+            not fm.get("nav_exclude")
+            and fm.get("status") == "published"
+            and fm["key"]
+            and fm["heading"]
+        ):
             try:
                 heading = headers[fm["heading"]]
             except KeyError:
@@ -277,10 +282,13 @@ def build_nav(
 def add_tooltips(path, glossary=None, exclude=(".github", "README.md", "vendor")):
     """Adds definitions as tooltips"""
 
-    with open(BASEPATH / "_data" / "test.txt") as f:
-        test_files = f.read().strip().splitlines()
-
-    print("Test files:", test_files)
+    try:
+        with open(BASEPATH / "_data" / "test.txt") as f:
+            test_files = f.read().strip().splitlines()
+    except FileNotFoundError:
+        test_files = []
+    else:
+        print("Test files:", test_files)
 
     if glossary is None:
         glossary = GLOSSARY
