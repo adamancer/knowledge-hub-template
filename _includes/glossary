@@ -1,27 +1,46 @@
 {%- capture term -%}
-{%- if include.namespace.blank? -%}
-{{ include.term | downcase }}
-{%- else -%}
-{{ include.namespace | downcase }}:{{ include.term | downcase }}
-{%- endif -%}
+    {%- if include.namespace.blank? -%}
+        {{ include.term | downcase }}
+    {%- else -%}
+        {{ include.namespace | downcase }}:{{ include.term | downcase }}
+    {%- endif -%}
 {%- endcapture -%}
 
 {%- for entry in site.data["glossary"] -%}
 
-{%- capture eterm -%}
-{%- if entry.namespace.blank? -%}
-{{ entry.term | downcase }}
-{%- else -%}
-{{ entry.namespace | downcase }}:{{ entry.term | downcase }}
-{%- endif -%}
-{%- endcapture -%}
+    {%- capture eterm -%}
+        {%- if entry.namespace.blank? -%}
+            {{ entry.term | downcase }}
+        {%- else -%}
+            {{ entry.namespace | downcase }}:{{ entry.term | downcase }}
+        {%- endif -%}
+    {%- endcapture -%}
 
-{%- if eterm == term -%}
-{%- if entry.url -%}
-    <a class="external tooltip" href="{{ entry.url }}">{{ include.term }}<span class="tooltiptext">{{ entry.definition }}</span></a>
-{%- else - %}
-    <span class="tooltip">{{ include.term }}<span class="tooltiptext">{{ entry.definition }}</span></span>
-{%- endif -%}
-{%- break -%}
-{%- endif -%}
+    {%- if eterm == term -%}
+        
+        {%- if entry.display != nil -%}
+            {% assign display = entry.display %}
+        {%- else -%}
+            {% assign display = include.term %}
+        {%- endif -%}
+        
+        {%- if include.link == "false" -%}
+            {{ display }}
+        {%- else -%}
+            {%- if entry.url -%}
+                {% assign checkArray = entry.url | split: "http" %}
+                {%- if checkArray[0] == "http" -%}
+                    <a class="external tooltip" href="{{ entry.url }}">{{ display }}<span class="tooltiptext">{{ entry.definition }}</span></a>
+                {%- else -%}
+                    <a class="tooltip" href="{{ entry.url }}">{{ display }}<span class="tooltiptext">{{ entry.definition }}</span></a>
+                {%- endif -%}
+            {%- else - %}
+                <span class="tooltip">{{ include.term }}<span class="tooltiptext">{{ entry.definition }}</span></span>
+            {%- endif -%}
+        {%- endif -%}
+        
+        {%- break -%}
+        
+    {%- endif -%}
+
 {%- endfor -%}

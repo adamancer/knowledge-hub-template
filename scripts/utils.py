@@ -140,10 +140,11 @@ def compute_urls(fms: dict) -> dict:
     return fms
 
 
-def index_tags(fms: dict, key: str = "tags") -> dict:
+def index_tags(fms: dict, key: str = "tags", tagged: list = None) -> dict:
     """Indexes front matter tags"""
 
-    tagged = []
+    if tagged is None:
+        tagged = []
 
     # Get tags from front matter of pages
     for fm in fms.values():
@@ -233,23 +234,24 @@ def build_nav(
         )
     )
 
-    # Add pages from collections to navigation
+    # Add top-level pages from collections to navigation
     children = {}
     for title, fm in fms.items():
-        if (
-            not fm.get("nav_exclude")
-            and not fm.get("parent")
-            and fm["key"]
-            and fm["heading"]
-        ):
+        if not fm.get("nav_exclude") and fm["key"] and fm["heading"]:
             try:
                 heading = headers[fm["heading"]]
             except KeyError:
                 heading = " ".join(fm["heading"].split("-")).title()
             page = {"title": fm.get("display_title", title), "url": fm["url"]}
-            group = [g for g in nav.get("sidebar", []) if g["title"] == heading][0]
-            group.setdefault("children", []).append(page)
-            children[title] = page
+
+            # Only top-level pages should be pulled in at this point
+            try:
+                group = [g for g in nav.get("sidebar", []) if g["title"] == heading][0]
+            except IndexError:
+                pass
+            else:
+                group.setdefault("children", []).append(page)
+                children[title] = page
 
     # Add pages that specify a parent to navigation
     while True:
@@ -275,6 +277,11 @@ def build_nav(
 def add_tooltips(path, glossary=None, exclude=(".github", "README.md", "vendor")):
     """Adds definitions as tooltips"""
 
+    with open(BASEPATH / "_data" / "test.txt") as f:
+        test_files = f.read().strip().splitlines()
+
+    print("Test files:", test_files)
+
     if glossary is None:
         glossary = GLOSSARY
 
@@ -283,7 +290,7 @@ def add_tooltips(path, glossary=None, exclude=(".github", "README.md", "vendor")
         r"#.*?\n",  # markdown headers
         r"\[.*?\]\(.*?\)",  # markdown links
         r"{%.*?%}",  # Jekyll includes
-        r"<*?>.*?</*?>",  # HTML tags
+        r"<a *?>.*?</a>",  # HTML anchor tags
     )
     pattern = f"({'|'.join(subpatterns)})"
 
@@ -291,7 +298,7 @@ def add_tooltips(path, glossary=None, exclude=(".github", "README.md", "vendor")
 
         # This function modifies the markdown files. The modified files should not
         # be committed, so it only runs on test.md if run locally.
-        if not IS_GITHUB and path.name != "test.md":
+        if not IS_GITHUB and path.name not in test_files:
             continue
 
         # Skip files including any of the exclude keywords
@@ -301,12 +308,15 @@ def add_tooltips(path, glossary=None, exclude=(".github", "README.md", "vendor")
         # Create a copy of the glossary. Terms are removed as they are found so that
         # only the first occurrence in each document has the tooltip.
         glossary_ = glossary.copy()
+        found = {}
 
         with open(path, encoding="utf-8") as f:
             try:
                 _, fm, content = f.read().split("---", 2)
             except Exception as exc:
                 raise ValueError(f"No YAML header: {path}") from exc
+            else:
+                fm_ = yaml.safe_load(fm)
             parts = re.split(pattern, content)
             for i, part in enumerate(parts):
                 if not re.match(pattern, part):
@@ -320,11 +330,14 @@ def add_tooltips(path, glossary=None, exclude=(".github", "README.md", "vendor")
                                 namespace, term = term.split(":")
                             except ValueError:
                                 namespace = ""
-                            include = f'{{% include glossary term="{term}" namespace="{namespace}" %}}'
+                            if fm_.get("highlight_all_terms") or not found.get(key):
+                                include = f'{{% include glossary term="{term}" namespace="{namespace}" %}}'
+                            else:
+                                include = f'{{% include glossary term="{term}" namespace="{namespace}" link="false" %}}'
                             parts[i] = re.sub(
-                                rf"\b{match.group()}\b", include, parts[i], 1
+                                rf"\b{match.group()}\b", include, parts[i]
                             )
-                            del glossary_[key]
+                            found[key] = True
             content_ = "---" + fm + "---" + "".join(parts)
 
         # Do not mess with the file unless it has been changed
@@ -372,7 +385,7 @@ def add_dwc_terms(session):
     glossary.sort(key=lambda t: t["term"].lower())
 
     with open(BASEPATH / "_data" / "glossary.yml", "w", encoding="utf-8") as f:
-        yaml.safe_dump(glossary, f, sort_keys=False)
+        yaml.safe_dump(glossary, f, allow_unicode=True, sort_keys=False)
 
     return {
         (t.get("namespace", "") + ":" + t["term"].lower()).lstrip(":"): t

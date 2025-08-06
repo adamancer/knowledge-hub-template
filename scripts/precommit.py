@@ -1,4 +1,4 @@
-"""Removes elements from local build that do not need to be committed"""
+"""Removes elements from local build that should not be committed"""
 
 import re
 
